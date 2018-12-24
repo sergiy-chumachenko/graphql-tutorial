@@ -20,16 +20,48 @@ class Query(graphene.ObjectType):
         ][:first]
 
 
-schema = graphene.Schema(query=Query)
+class CreateUser(graphene.Mutation):
+    class Arguments:
+        username = graphene.String()
+        last_login = graphene.DateTime(required=False)
+
+    user = graphene.Field(User)
+
+    def mutate(self, info, username):
+        if info.context.get('is_vip'):
+            username = username.upper()
+        user = User(username=username)
+        return CreateUser(user=user)
+
+
+class Mutations(graphene.ObjectType):
+    create_user = CreateUser.Field()
+
+
+schema = graphene.Schema(query=Query, mutation=Mutations)
+# result = schema.execute(
+#     '''
+#     {
+#         users(first:2){
+#             username
+#             lastLogin
+#         }
+#     }
+#     '''
+# )
+
 result = schema.execute(
     '''
-    {
-        users(first:2){
-            username
-            lastLogin
+    mutation createUser($username: String) {
+        createUser(username: $username){
+            user {
+                username
+            }
         }
     }
-    '''
+    ''',
+    variable_values={'username': 'Alice'},
+    context={'is_vip': False}
 )
 
 
